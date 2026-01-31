@@ -6,15 +6,19 @@ import {
   getAllFeeRecords, 
   getPendingFees,
   FEE_CONFIG,
-  hasSplitterContract
+  hasSplitterContract,
+  getSupportedNetworks
 } from '@/lib/fee-collection';
 import { SPLITTER_CONTRACTS, STABLECOIN_ADDRESSES } from '@/packages/shared/constants';
 
 export async function GET(request: NextRequest) {
   try {
-    const summary = getFeeSummary();
-    const pendingFees = getPendingFees();
-    const allRecords = getAllFeeRecords();
+    // Fetch data (now async for database access)
+    const [summary, pendingFees, allRecords] = await Promise.all([
+      getFeeSummary(),
+      getPendingFees(),
+      getAllFeeRecords(),
+    ]);
     
     // Check which networks have splitter contracts deployed
     const networkStatus = Object.keys(SPLITTER_CONTRACTS).map(network => ({
@@ -38,7 +42,19 @@ export async function GET(request: NextRequest) {
       },
       networks: networkStatus,
       pendingFees: pendingFees.slice(0, 50), // Last 50 pending
-      recentTransactions: allRecords.slice(-20).reverse(), // Last 20 transactions
+      recentTransactions: allRecords.slice(0, 20), // Last 20 transactions
+      
+      // Fee collection explanation
+      feeExplanation: {
+        howItWorks: [
+          '1. Customer pays in ANY crypto (BTC, ETH, XRP, SOL, etc.)',
+          '2. Swap provider converts to USDC/USDT',
+          '3. 99% goes to merchant wallet',
+          '4. 1% goes to platform fee wallet',
+        ],
+        merchantGuarantee: 'Each merchant ONLY receives their own funds - never mixed with other merchants',
+        platformFee: '1% of all transactions goes to: ' + FEE_CONFIG.walletAddress,
+      },
       
       // Instructions for deploying splitter contracts
       deployment: {
@@ -46,6 +62,7 @@ export async function GET(request: NextRequest) {
         contractPath: '/contracts/PaymentSplitter.sol',
         constructorArgs: {
           feeWallet: FEE_CONFIG.walletAddress,
+          feeBasisPoints: 100, // 1%
         },
         postDeployment: [
           'Call setSupportedToken() for USDC and USDT addresses',

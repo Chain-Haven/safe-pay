@@ -128,8 +128,8 @@ export async function POST(
       merchant.payout_memo || undefined
     );
 
-    // Record fee for tracking
-    const feeRecord = recordFee({
+    // Record fee for tracking (stored in database)
+    const feeRecord = await recordFee({
       orderId: order.id,
       merchantId: merchant.id,
       merchantAddress: merchant.payout_address,
