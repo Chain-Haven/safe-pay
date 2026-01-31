@@ -1,0 +1,24 @@
+{
+  "name": "safe-pay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Non-custodial WooCommerce crypto payment gateway - Zero API keys required",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build --filter=api",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean",
+    "build:plugin": "pnpm --filter wc-crypto-gateway build",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:push": "pnpm --filter api db:push"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "installCommand": "npm install --legacy-peer-deps",
+  "crons": [
+    {
+      "path": "/api/cron/daily-provider-check",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "wc-crypto-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WooCommerce crypto payment gateway plugin",
+  "scripts": {
+    "build": "node scripts/build-zip.js",
+    "lint": "phpcs --standard=WordPress ./",
+    "lint:fix": "phpcbf --standard=WordPress ./"
+  }
+}
