@@ -41,3 +41,4 @@ coverage
 .env*.local
 # Trigger rebuild
 # Production Ready - Sat Jan 31 15:21:53 CST 2026
+contracts/.env

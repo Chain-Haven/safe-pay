@@ -20,8 +20,8 @@ export const FEE_WALLET_ADDRESS = '0xaF109Ccf6b5e77A139253E4db48B95d6ea361146';
  * These contracts automatically split payments 99% to merchant, 1% to fee wallet
  */
 export const SPLITTER_CONTRACTS: Record<string, string> = {
-  // Deploy these contracts and add addresses here
-  POLYGON: '', // To be deployed
+  // Deployed payment splitter contracts (1% auto-split to fee wallet)
+  POLYGON: '0xfd374aA3bc64368fbE79b31698671221bbaaFBf3', // Deployed!
   BSC: '',     // To be deployed
   ARB: '',     // To be deployed
   OP: '',      // To be deployed

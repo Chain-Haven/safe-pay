@@ -1,0 +1,13 @@
+{
+  "network": "polygon",
+  "chainId": 137,
+  "splitterAddress": "0xfd374aA3bc64368fbE79b31698671221bbaaFBf3",
+  "feeWallet": "0xaF109Ccf6b5e77A139253E4db48B95d6ea361146",
+  "feeBasisPoints": 100,
+  "tokens": {
+    "USDC": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    "USDT": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+  },
+  "deployer": "0x920D86256Fbe84a69D9365874071307bacc768Ce",
+  "timestamp": "2026-01-31T21:46:58.368Z"
+}
