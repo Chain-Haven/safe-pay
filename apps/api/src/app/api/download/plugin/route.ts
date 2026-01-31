@@ -1,35 +1,16 @@
 // GET /api/download/plugin
-// Serve the WooCommerce plugin zip file
+// Redirect to the WooCommerce plugin zip file
 import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 export async function GET(request: NextRequest) {
-  // In production, this would serve a pre-built zip file
-  // For development, we'll return a placeholder response
+  // Redirect to the static zip file in the public folder
+  // The file is served statically by Next.js from /public/downloads/
+  const downloadUrl = new URL('/downloads/wc-crypto-gateway.zip', request.url);
   
-  const pluginPath = join(process.cwd(), '..', 'woocommerce-plugin', 'dist', 'wc-crypto-gateway.zip');
-  
-  if (existsSync(pluginPath)) {
-    const file = readFileSync(pluginPath);
-    
-    return new NextResponse(file, {
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': 'attachment; filename="wc-crypto-gateway.zip"',
-        'Content-Length': file.length.toString(),
-      },
-    });
-  }
-  
-  // For development/demo, redirect to GitHub releases or return info
-  return NextResponse.json({
-    message: 'Plugin download',
-    instructions: [
-      '1. Build the plugin: pnpm run build:plugin',
-      '2. Or download from GitHub releases',
-      '3. The zip file will be available at /dist/wc-crypto-gateway.zip'
-    ],
-    github: 'https://github.com/yourusername/safe-pay/releases',
-  }, { status: 200 });
+  return NextResponse.redirect(downloadUrl, {
+    status: 302,
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  });
 }

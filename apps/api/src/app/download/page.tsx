@@ -45,7 +45,8 @@ export default function DownloadPage() {
               <p className="text-gray-600 dark:text-gray-400">Version 1.0.0 • WooCommerce 6.0+</p>
             </div>
             <a
-              href="/api/download/plugin"
+              href="/downloads/wc-crypto-gateway.zip"
+              download="wc-crypto-gateway.zip"
               className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition flex items-center"
             >
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -252,8 +253,9 @@ export default function DownloadPage() {
             Need help? Check out our documentation or open an issue on GitHub.
           </p>
           <a 
-            href="https://github.com/yourusername/safe-pay" 
+            href="https://github.com/Chain-Haven/safe-pay" 
             target="_blank"
+            rel="noopener noreferrer"
             className="text-primary-600 hover:text-primary-700 font-medium"
           >
             Visit GitHub Repository →
