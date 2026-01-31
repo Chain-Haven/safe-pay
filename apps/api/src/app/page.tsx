@@ -616,7 +616,7 @@ export default function LandingPage() {
             </code>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="max-w-md mx-auto">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">For Merchants</h3>
               <ol className="space-y-3 text-gray-600 dark:text-gray-400">
@@ -635,28 +635,6 @@ export default function LandingPage() {
                 <li className="flex items-start">
                   <span className="font-medium text-primary-600 mr-2">4.</span>
                   Enable SafePay and enter your wallet address
-                </li>
-              </ol>
-            </div>
-
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Self-Hosting</h3>
-              <ol className="space-y-3 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="font-medium text-primary-600 mr-2">1.</span>
-                  Deploy to Vercel (free tier)
-                </li>
-                <li className="flex items-start">
-                  <span className="font-medium text-primary-600 mr-2">2.</span>
-                  Create Supabase project (free tier)
-                </li>
-                <li className="flex items-start">
-                  <span className="font-medium text-primary-600 mr-2">3.</span>
-                  Set SUPABASE_URL and SERVICE_ROLE_KEY
-                </li>
-                <li className="flex items-start">
-                  <span className="font-medium text-primary-600 mr-2">4.</span>
-                  Run database migrations
                 </li>
               </ol>
             </div>
