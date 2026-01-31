@@ -3,7 +3,8 @@
 // Safe, sandboxed testing for auto-generated provider implementations.
 // Runs comprehensive tests before any provider can be integrated.
 
-import type { ISwapProvider, SwapQuote, SwapStatus } from '@/packages/providers/interfaces';
+import type { ISwapProvider } from '@/packages/providers/interfaces';
+import type { SwapQuote, SwapStatus } from '@/packages/shared';
 
 /**
  * Test result for a single test case
