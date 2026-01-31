@@ -53,7 +53,7 @@ Customer pays BTC/ETH/etc → Swap Provider → Merchant receives USDC/USDT
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/safe-pay.git
+git clone https://github.com/Chain-Haven/safe-pay.git
 cd safe-pay
 pnpm install
 ```

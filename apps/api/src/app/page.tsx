@@ -240,7 +240,7 @@ export default function LandingPage() {
   const [copied, setCopied] = useState(false);
 
   const copyCommand = () => {
-    navigator.clipboard.writeText('git clone https://github.com/yourusername/safe-pay.git');
+    navigator.clipboard.writeText('git clone https://github.com/Chain-Haven/safe-pay.git');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -612,7 +612,7 @@ export default function LandingPage() {
               </button>
             </div>
             <code className="text-green-400 font-mono">
-              git clone https://github.com/yourusername/safe-pay.git
+              git clone https://github.com/Chain-Haven/safe-pay.git
             </code>
           </div>
 
@@ -687,7 +687,7 @@ export default function LandingPage() {
               <span className="text-white font-bold">SafePay</span>
             </div>
             <div className="flex space-x-8">
-              <a href="https://github.com/yourusername/safe-pay" className="text-gray-400 hover:text-white transition">
+              <a href="https://github.com/Chain-Haven/safe-pay" className="text-gray-400 hover:text-white transition">
                 GitHub
               </a>
               <Link href="/download" className="text-gray-400 hover:text-white transition">
