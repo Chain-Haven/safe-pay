@@ -15,7 +15,9 @@ const pluginName = 'wc-crypto-gateway';
 const includeFiles = [
   'wc-crypto-gateway.php',
   'includes/',
-  'assets/',
+  'assets/images/',
+  'assets/js/',
+  'assets/css/',
   'languages/',
   'readme.txt',
 ];

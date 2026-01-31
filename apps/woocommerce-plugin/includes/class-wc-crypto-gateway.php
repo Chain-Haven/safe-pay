@@ -159,10 +159,19 @@ class WC_Crypto_Gateway extends WC_Payment_Gateway {
     }
 
     /**
-     * Enqueue scripts for checkout
+     * Enqueue scripts and styles for checkout
      */
     public function enqueue_scripts() {
         if (is_checkout() || is_wc_endpoint_url('order-received')) {
+            // Enqueue styles
+            wp_enqueue_style(
+                'wc-crypto-gateway',
+                esc_url(WC_CRYPTO_GATEWAY_PLUGIN_URL . 'assets/css/checkout.css'),
+                array(),
+                WC_CRYPTO_GATEWAY_VERSION
+            );
+            
+            // Enqueue scripts
             wp_enqueue_script(
                 'wc-crypto-gateway',
                 esc_url(WC_CRYPTO_GATEWAY_PLUGIN_URL . 'assets/js/checkout.js'),
@@ -174,6 +183,12 @@ class WC_Crypto_Gateway extends WC_Payment_Gateway {
             wp_localize_script('wc-crypto-gateway', 'wcCryptoGateway', array(
                 'ajaxUrl' => esc_url(admin_url('admin-ajax.php')),
                 'nonce' => wp_create_nonce('wc_crypto_check_status'),
+                'walletSupport' => array(
+                    'metamask' => true,
+                    'coinbase' => true,
+                    'exodus' => true,
+                    'trust' => true,
+                ),
             ));
         }
     }

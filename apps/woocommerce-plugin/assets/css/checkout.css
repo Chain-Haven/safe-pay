@@ -1,0 +1,342 @@
+/**
+ * SafePay Checkout Styles
+ * Wallet integration and payment form styles
+ */
+
+/* Wallet Container */
+.safepay-wallets {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.safepay-wallet-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    margin: 0 0 15px 0;
+}
+
+/* Wallet Buttons Container */
+.safepay-wallet-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Wallet Button */
+.safepay-wallet-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.safepay-wallet-btn:hover {
+    border-color: #6366f1;
+    background: #f5f3ff;
+    transform: translateY(-1px);
+}
+
+.safepay-wallet-btn:active {
+    transform: translateY(0);
+}
+
+.safepay-wallet-btn svg {
+    flex-shrink: 0;
+}
+
+/* MetaMask specific */
+.safepay-wallet-btn[data-wallet="metamask"]:hover {
+    border-color: #f6851b;
+    background: #fff8f2;
+}
+
+/* Coinbase specific */
+.safepay-wallet-btn[data-wallet="coinbase"]:hover {
+    border-color: #0052ff;
+    background: #f0f6ff;
+}
+
+/* Exodus specific */
+.safepay-wallet-btn[data-wallet="exodus"]:hover {
+    border-color: #8b5cf6;
+    background: #faf5ff;
+}
+
+/* Trust specific */
+.safepay-wallet-btn[data-wallet="trust"]:hover {
+    border-color: #0500ff;
+    background: #f0f0ff;
+}
+
+/* Manual Payment Section */
+.safepay-manual-pay {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.safepay-manual-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    margin: 0 0 10px 0;
+}
+
+/* Address Box */
+.safepay-address-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+}
+
+.safepay-address {
+    flex: 1;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    color: #334155;
+    word-break: break-all;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+/* Copy Button */
+.safepay-copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 6px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.safepay-copy-btn:hover {
+    background: #6366f1;
+    color: #ffffff;
+}
+
+.safepay-copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Amount Display */
+.safepay-amount {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.safepay-amount strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* Notices */
+.safepay-notice {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    animation: safepay-slide-in 0.3s ease;
+}
+
+@keyframes safepay-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.safepay-notice-success {
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    color: #047857;
+}
+
+.safepay-notice-error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+}
+
+.safepay-notice-info {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    color: #1d4ed8;
+}
+
+/* QR Code Container */
+.safepay-qr-container {
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.safepay-qr-code {
+    display: inline-block;
+    padding: 15px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.safepay-qr-code img,
+.safepay-qr-code canvas {
+    display: block;
+}
+
+.safepay-qr-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 10px;
+}
+
+/* Payment Status */
+.safepay-payment-status {
+    text-align: center;
+    padding: 30px;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.safepay-status-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 15px;
+}
+
+.safepay-status-icon.pending {
+    animation: safepay-pulse 2s infinite;
+}
+
+@keyframes safepay-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.safepay-status-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #334155;
+    margin: 0 0 5px 0;
+}
+
+.safepay-status-subtext {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .safepay-wallet-buttons {
+        flex-direction: column;
+    }
+    
+    .safepay-wallet-btn {
+        justify-content: center;
+    }
+    
+    .safepay-address {
+        font-size: 11px;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .safepay-wallets {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    
+    .safepay-wallet-title {
+        color: #e2e8f0;
+    }
+    
+    .safepay-wallet-btn {
+        background: #0f172a;
+        border-color: #334155;
+        color: #f1f5f9;
+    }
+    
+    .safepay-wallet-btn:hover {
+        background: #1e1b4b;
+    }
+    
+    .safepay-manual-pay {
+        border-color: #334155;
+    }
+    
+    .safepay-manual-title {
+        color: #94a3b8;
+    }
+    
+    .safepay-address-box {
+        background: #0f172a;
+        border-color: #334155;
+    }
+    
+    .safepay-address {
+        color: #e2e8f0;
+    }
+    
+    .safepay-copy-btn {
+        background: #334155;
+        color: #94a3b8;
+    }
+    
+    .safepay-amount {
+        color: #94a3b8;
+    }
+    
+    .safepay-amount strong {
+        color: #f1f5f9;
+    }
+}
+
+/* Powered by link styles */
+.safepay-powered-by {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.safepay-powered-by a {
+    color: #6366f1 !important;
+    text-decoration: none;
+}
+
+.safepay-powered-by a:hover {
+    text-decoration: underline;
+}

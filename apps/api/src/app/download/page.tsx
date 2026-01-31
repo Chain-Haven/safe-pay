@@ -45,7 +45,7 @@ export default function DownloadPage() {
               <p className="text-gray-600 dark:text-gray-400">Version 1.0.0 • WooCommerce 6.0+</p>
             </div>
             <a
-              href="/downloads/wc-crypto-gateway.zip"
+              href="/api/download/plugin"
               download="wc-crypto-gateway.zip"
               className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition flex items-center"
             >

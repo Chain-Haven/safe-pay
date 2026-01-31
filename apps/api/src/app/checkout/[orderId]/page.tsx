@@ -47,6 +47,200 @@ interface SwapResult {
   expires_at: string;
 }
 
+// Wallet integration helpers
+const isEVMNetwork = (network: string): boolean => {
+  const evmNetworks = ['ERC20', 'POLYGON', 'BSC', 'ARB', 'OP', 'AVAX', 'ETH', 'MATIC', 'BNB'];
+  return evmNetworks.includes(network.toUpperCase());
+};
+
+const getCurrencyScheme = (currency: string): string => {
+  const schemes: Record<string, string> = {
+    'BTC': 'bitcoin',
+    'ETH': 'ethereum',
+    'LTC': 'litecoin',
+    'DOGE': 'dogecoin',
+    'XRP': 'ripple',
+    'SOL': 'solana',
+    'MATIC': 'polygon',
+    'BNB': 'bnb',
+  };
+  return schemes[currency.toUpperCase()] || currency.toLowerCase();
+};
+
+// Wallet Buttons Component
+function WalletButtons({ 
+  address, 
+  amount, 
+  currency, 
+  network,
+  onCopy,
+  copied 
+}: { 
+  address: string; 
+  amount: number; 
+  currency: string; 
+  network: string;
+  onCopy: (text: string) => void;
+  copied: boolean;
+}) {
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showNotice = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotice({ message, type });
+    setTimeout(() => setNotice(null), 4000);
+  };
+
+  // Connect MetaMask
+  const connectMetaMask = async () => {
+    if (typeof window === 'undefined') return;
+    
+    const ethereum = (window as any).ethereum;
+    if (!ethereum) {
+      window.open('https://metamask.io/download/', '_blank');
+      showNotice('Please install MetaMask to use this feature.', 'info');
+      return;
+    }
+
+    setConnecting('metamask');
+    try {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const userAddress = accounts[0];
+      
+      // Convert amount to wei (for native tokens)
+      const weiAmount = BigInt(Math.floor(amount * 1e18)).toString(16);
+      
+      const txParams = {
+        from: userAddress,
+        to: address,
+        value: '0x' + weiAmount,
+        gas: '0x5208',
+      };
+
+      const txHash = await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txParams],
+      });
+
+      showNotice(`Transaction sent! ${txHash.substring(0, 15)}...`, 'success');
+    } catch (error: any) {
+      if (error.code === 4001) {
+        showNotice('Transaction cancelled.', 'error');
+      } else if (error.code === -32002) {
+        showNotice('Please check MetaMask - request pending.', 'info');
+      } else {
+        showNotice('Connection failed. Try manual payment.', 'error');
+      }
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  // Open Coinbase Wallet
+  const openCoinbase = () => {
+    onCopy(address);
+    const cbLink = `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(window.location.href)}`;
+    window.open(cbLink, '_blank');
+    showNotice('Address copied! Opening Coinbase Wallet...', 'info');
+  };
+
+  // Open Exodus
+  const openExodus = () => {
+    onCopy(address);
+    const scheme = getCurrencyScheme(currency);
+    const deepLink = `exodus://${scheme}/${address}?amount=${amount}`;
+    showNotice('Address copied! Opening Exodus...', 'info');
+    window.location.href = deepLink;
+  };
+
+  // Open Trust Wallet
+  const openTrustWallet = () => {
+    onCopy(address);
+    const trustLink = `trust://send?asset=c60&address=${address}&amount=${amount}`;
+    showNotice('Address copied! Opening Trust Wallet...', 'info');
+    window.location.href = trustLink;
+  };
+
+  const showEVMWallets = isEVMNetwork(network);
+
+  return (
+    <div className="mb-6">
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        Quick Pay with Wallet
+      </p>
+      
+      {notice && (
+        <div className={`mb-3 p-3 rounded-xl text-sm ${
+          notice.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800' :
+          notice.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800' :
+          'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+        }`}>
+          {notice.message}
+        </div>
+      )}
+      
+      <div className="flex flex-wrap gap-2">
+        {/* MetaMask */}
+        {showEVMWallets && (
+          <button
+            onClick={connectMetaMask}
+            disabled={connecting !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition disabled:opacity-50"
+          >
+            <svg width="20" height="20" viewBox="0 0 35 33">
+              <path fill="#E17726" d="M32.958 1L19.366 11.104l2.504-5.927L32.958 1z"/>
+              <path fill="#E27625" d="M2.042 1l13.467 10.204-2.38-6.027L2.042 1zM28.141 23.847l-3.617 5.54 7.738 2.129 2.22-7.538-6.341-.131zM0.534 23.978l2.207 7.538 7.726-2.13-3.604-5.539-6.329.131z"/>
+            </svg>
+            {connecting === 'metamask' ? 'Connecting...' : 'MetaMask'}
+          </button>
+        )}
+
+        {/* Coinbase */}
+        {showEVMWallets && (
+          <button
+            onClick={openCoinbase}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+          >
+            <svg width="20" height="20" viewBox="0 0 32 32">
+              <circle fill="#0052FF" cx="16" cy="16" r="16"/>
+              <path fill="white" d="M16 6c-5.523 0-10 4.477-10 10s4.477 10 10 10 10-4.477 10-10S21.523 6 16 6zm0 15.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"/>
+            </svg>
+            Coinbase
+          </button>
+        )}
+
+        {/* Exodus */}
+        <button
+          onClick={openExodus}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+        >
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <circle fill="#1F2033" cx="16" cy="16" r="16"/>
+            <path fill="#8B5CF6" d="M8 10l8-4 8 4v12l-8 4-8-4V10z"/>
+          </svg>
+          Exodus
+        </button>
+
+        {/* Trust Wallet */}
+        <button
+          onClick={openTrustWallet}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+        >
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <circle fill="#0500FF" cx="16" cy="16" r="16"/>
+            <path fill="white" d="M16 6l10 4v8c0 5.5-4.5 10-10 10S6 23.5 6 18v-8l10-4z"/>
+          </svg>
+          Trust Wallet
+        </button>
+      </div>
+      
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        Click a wallet to auto-fill payment details, or scan/copy below
+      </p>
+    </div>
+  );
+}
+
 const STATUS_MESSAGES: Record<string, { title: string; description: string; color: string }> = {
   pending: {
     title: 'Select Payment Method',
@@ -415,6 +609,16 @@ export default function CheckoutPage() {
                 {String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
               </span>
             </div>
+
+            {/* Quick Pay Wallet Buttons */}
+            <WalletButtons 
+              address={order.deposit_address}
+              amount={order.deposit_amount || 0}
+              currency={order.pay_currency || ''}
+              network={order.pay_network || ''}
+              onCopy={(text) => copyToClipboard(text, 'wallet')}
+              copied={copied === 'wallet'}
+            />
 
             {/* QR Code */}
             <div className="flex justify-center mb-6">
