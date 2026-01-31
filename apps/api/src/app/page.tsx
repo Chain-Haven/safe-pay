@@ -1,51 +1,305 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
 
-// Demo checkout component
-function DemoCheckout() {
-  const [step, setStep] = useState<'select' | 'payment' | 'confirming' | 'complete'>('select');
-  const [selectedCoin, setSelectedCoin] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  
-  const demoCoins = [
-    { code: 'BTC', name: 'Bitcoin', icon: '₿', color: 'bg-orange-500' },
-    { code: 'ETH', name: 'Ethereum', icon: 'Ξ', color: 'bg-blue-500' },
-    { code: 'SOL', name: 'Solana', icon: '◎', color: 'bg-purple-500' },
-    { code: 'DOGE', name: 'Dogecoin', icon: 'Ð', color: 'bg-yellow-500' },
-    { code: 'LTC', name: 'Litecoin', icon: 'Ł', color: 'bg-gray-500' },
-    { code: 'XRP', name: 'Ripple', icon: '✕', color: 'bg-cyan-500' },
-  ];
+// Coin interface
+interface Coin {
+  code: string;
+  name: string;
+  networks: string[];
+  icon?: string;
+}
 
-  const handleCoinSelect = (code: string) => {
-    setSelectedCoin(code);
-    setStep('payment');
+// Demo order interface
+interface DemoOrder {
+  id: string;
+  status: string;
+  fiat_amount: number;
+  fiat_currency: string;
+  net_receive: number;
+  settlement_currency: string;
+  pay_currency?: string;
+  pay_network?: string;
+  deposit_address?: string;
+  deposit_amount?: number;
+  deposit_memo?: string;
+  provider?: string;
+  deposit_tx_hash?: string;
+  settlement_tx_hash?: string;
+  settlement_amount?: number;
+  expires_at?: string;
+  time_remaining?: { minutes: number; seconds: number; expired: boolean };
+  is_demo: boolean;
+}
+
+// Live Demo component using actual production code
+function LiveDemo() {
+  const [order, setOrder] = useState<DemoOrder | null>(null);
+  const [coins, setCoins] = useState<Coin[]>([]);
+  const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState({ minutes: 30, seconds: 0 });
+  const [simulating, setSimulating] = useState(false);
+  const [demoAmount, setDemoAmount] = useState(99);
+
+  // Fetch coins on mount
+  useEffect(() => {
+    fetchCoins();
+  }, []);
+
+  const fetchCoins = async () => {
+    try {
+      const response = await fetch('/api/v1/coins');
+      if (response.ok) {
+        const data = await response.json();
+        setCoins(data.coins || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch coins:', error);
+    }
   };
 
-  const handleSimulatePayment = () => {
-    setStep('confirming');
-    setProgress(0);
-    
-    // Simulate confirmation progress
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setStep('complete');
-          return 100;
-        }
-        return prev + 10;
+  // Create demo order
+  const createDemoOrder = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/v1/demo/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: demoAmount }),
       });
-    }, 300);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setOrder(data.order);
+        setTimeRemaining({ minutes: 30, seconds: 0 });
+      }
+    } catch (error) {
+      console.error('Failed to create demo:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Create swap
+  const createSwap = async () => {
+    if (!order || !selectedCoin || !selectedNetwork) return;
+
+    setCreating(true);
+    try {
+      const response = await fetch(`/api/v1/demo/${order.id}/swap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pay_currency: selectedCoin.code,
+          pay_network: selectedNetwork,
+          order_amount: order.fiat_amount,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrder(prev => prev ? {
+          ...prev,
+          status: 'awaiting_deposit',
+          pay_currency: selectedCoin.code,
+          pay_network: selectedNetwork,
+          deposit_address: data.swap.deposit_address,
+          deposit_amount: data.swap.deposit_amount,
+          deposit_memo: data.swap.deposit_memo,
+          provider: data.swap.provider,
+        } : null);
+      }
+    } catch (error) {
+      console.error('Failed to create swap:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Simulate payment
+  const simulatePayment = async () => {
+    if (!order) return;
+
+    setSimulating(true);
+    
+    // Step 1: Confirming
+    await simulateStep('pay');
+    await delay(1500);
+    
+    // Step 2: Exchanging
+    await simulateStep('confirm');
+    await delay(1500);
+    
+    // Step 3: Sending
+    await simulateStep('exchange');
+    await delay(1500);
+    
+    // Step 4: Complete
+    await simulateStep('complete');
+    setSimulating(false);
+  };
+
+  const simulateStep = async (action: string) => {
+    try {
+      const response = await fetch(`/api/v1/demo/${order?.id}/simulate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setOrder(prev => prev ? { ...prev, ...data.order } : null);
+      }
+    } catch (error) {
+      console.error('Simulate error:', error);
+    }
+  };
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Reset demo
   const resetDemo = () => {
-    setStep('select');
+    setOrder(null);
     setSelectedCoin(null);
-    setProgress(0);
+    setSelectedNetwork('');
+    setSearchQuery('');
+    setSimulating(false);
   };
 
+  // Copy to clipboard
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(field);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  // Timer
+  useEffect(() => {
+    if (!order || order.status !== 'awaiting_deposit') return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { minutes: prev.minutes - 1, seconds: 59 };
+        }
+        return prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [order?.status]);
+
+  // Filter coins
+  const filteredCoins = coins.filter(coin =>
+    coin.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    coin.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Status messages
+  const STATUS_INFO: Record<string, { title: string; description: string }> = {
+    pending: { title: 'Select Payment Method', description: 'Choose your preferred cryptocurrency' },
+    awaiting_deposit: { title: 'Awaiting Payment', description: 'Send the exact amount to the address below' },
+    confirming: { title: 'Confirming Payment', description: 'Waiting for blockchain confirmations...' },
+    exchanging: { title: 'Processing Exchange', description: 'Converting your payment to stablecoin...' },
+    sending: { title: 'Sending to Merchant', description: 'Finalizing the payment...' },
+    completed: { title: 'Payment Complete!', description: 'Your payment has been processed successfully' },
+  };
+
+  // Initial state - start demo button
+  if (!order) {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <span className="font-bold text-sm">$</span>
+              </div>
+              <span className="font-semibold">SafePay Checkout</span>
+            </div>
+            <span className="text-xs bg-green-500 px-2 py-1 rounded font-medium">LIVE DEMO</span>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Try the Full Checkout Experience
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              This demo uses real API endpoints, real rate shopping, and the exact same checkout flow your customers will experience.
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Demo Order Amount
+            </label>
+            <div className="flex items-center space-x-3">
+              {[49, 99, 249].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setDemoAmount(amount)}
+                  className={`flex-1 py-2 px-3 rounded-lg border-2 font-medium transition ${
+                    demoAmount === amount
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                  }`}
+                >
+                  ${amount}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={createDemoOrder}
+            disabled={loading}
+            className="w-full bg-primary-600 text-white py-4 rounded-xl font-semibold hover:bg-primary-700 transition disabled:opacity-50 flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Starting Demo...
+              </>
+            ) : (
+              <>
+                Start Live Demo
+                <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            No real payment required • Uses production API
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Main checkout flow
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto">
       {/* Header */}
@@ -57,7 +311,7 @@ function DemoCheckout() {
             </div>
             <span className="font-semibold">SafePay Checkout</span>
           </div>
-          <span className="text-xs bg-white/20 px-2 py-1 rounded">DEMO</span>
+          <span className="text-xs bg-green-500 px-2 py-1 rounded font-medium">LIVE DEMO</span>
         </div>
       </div>
 
@@ -65,160 +319,284 @@ function DemoCheckout() {
       <div className="p-4 border-b border-gray-100 dark:border-gray-800">
         <div className="flex justify-between items-center">
           <span className="text-gray-600 dark:text-gray-400">Order Total</span>
-          <span className="text-2xl font-bold text-gray-900 dark:text-white">$99.00</span>
+          <span className="text-2xl font-bold text-gray-900 dark:text-white">
+            ${order.fiat_amount.toFixed(2)}
+          </span>
         </div>
         <div className="text-sm text-gray-500 mt-1">Demo Store - Premium Widget</div>
       </div>
 
-      {/* Content based on step */}
-      <div className="p-4">
-        {step === 'select' && (
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Select Payment Method</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {demoCoins.map((coin) => (
-                <button
-                  key={coin.code}
-                  onClick={() => handleCoinSelect(coin.code)}
-                  className="flex flex-col items-center p-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition"
-                >
-                  <div className={`w-10 h-10 ${coin.color} rounded-full flex items-center justify-center text-white font-bold mb-2`}>
-                    {coin.icon}
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{coin.code}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 text-center mt-4">
-              + 100 more cryptocurrencies supported
-            </p>
-          </div>
-        )}
+      {/* Status */}
+      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
+        <div className="flex items-center text-sm">
+          {order.status === 'completed' ? (
+            <svg className="w-5 h-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : ['confirming', 'exchanging', 'sending'].includes(order.status) ? (
+            <svg className="animate-spin h-5 w-5 text-primary-500 mr-2" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : null}
+          <span className={`font-medium ${order.status === 'completed' ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'}`}>
+            {STATUS_INFO[order.status]?.title || 'Processing'}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          {STATUS_INFO[order.status]?.description}
+        </p>
+      </div>
 
-        {step === 'payment' && (
-          <div className="text-center">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-              Send {selectedCoin} to this address
-            </h3>
-            
-            {/* QR Code placeholder */}
-            <div className="w-48 h-48 mx-auto bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mb-4 relative overflow-hidden">
-              <div className="absolute inset-0 grid grid-cols-8 gap-0.5 p-2">
-                {Array.from({ length: 64 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`${Math.random() > 0.5 ? 'bg-gray-900 dark:bg-white' : 'bg-transparent'}`}
-                  />
+      <div className="p-4">
+        {/* Coin Selection */}
+        {order.status === 'pending' && (
+          <>
+            <div className="relative mb-4">
+              <input
+                type="text"
+                placeholder="Search coins..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              />
+              <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            <div className="max-h-48 overflow-y-auto mb-4">
+              <div className="grid grid-cols-3 gap-2">
+                {filteredCoins.slice(0, 18).map((coin) => (
+                  <button
+                    key={coin.code}
+                    onClick={() => {
+                      setSelectedCoin(coin);
+                      setSelectedNetwork(coin.networks[0] || '');
+                    }}
+                    className={`p-3 rounded-xl border-2 transition text-center ${
+                      selectedCoin?.code === coin.code
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">{coin.code}</div>
+                    <div className="text-xs text-gray-500 truncate">{coin.name}</div>
+                  </button>
                 ))}
               </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded flex items-center justify-center">
-                  <span className="text-2xl">
-                    {demoCoins.find(c => c.code === selectedCoin)?.icon}
+            </div>
+
+            {selectedCoin && selectedCoin.networks.length > 1 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Network
+                </label>
+                <select
+                  value={selectedNetwork}
+                  onChange={(e) => setSelectedNetwork(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  {selectedCoin.networks.map((network) => (
+                    <option key={network} value={network}>{network}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              onClick={createSwap}
+              disabled={!selectedCoin || !selectedNetwork || creating}
+              className="w-full py-4 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition disabled:opacity-50 flex items-center justify-center"
+            >
+              {creating ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Getting Best Rate...
+                </>
+              ) : (
+                `Pay with ${selectedCoin?.code || 'Crypto'}`
+              )}
+            </button>
+
+            {selectedCoin && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                Rate shopping across Exolix & FixedFloat
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Payment Details */}
+        {order.status === 'awaiting_deposit' && order.deposit_address && (
+          <>
+            {/* Timer */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-600 dark:text-gray-400 text-sm">Time Remaining</span>
+              <span className={`font-mono font-bold ${
+                timeRemaining.minutes < 5 ? 'text-red-600' : 'text-gray-900 dark:text-white'
+              }`}>
+                {String(timeRemaining.minutes).padStart(2, '0')}:{String(timeRemaining.seconds).padStart(2, '0')}
+              </span>
+            </div>
+
+            {/* QR Code */}
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-white rounded-xl shadow-inner">
+                <QRCodeSVG
+                  value={order.deposit_address}
+                  size={160}
+                  level="M"
+                />
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Send Exactly</label>
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-xl p-3">
+                <span className="font-mono font-bold text-gray-900 dark:text-white">
+                  {order.deposit_amount} {order.pay_currency}
+                </span>
+                <button
+                  onClick={() => copyToClipboard(String(order.deposit_amount), 'amount')}
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
+                  {copied === 'amount' ? '✓ Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">To Address</label>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-gray-900 dark:text-white break-all">
+                    {order.deposit_address}
                   </span>
+                  <button
+                    onClick={() => copyToClipboard(order.deposit_address!, 'address')}
+                    className="text-primary-600 hover:text-primary-700 ml-2 flex-shrink-0 text-sm font-medium"
+                  >
+                    {copied === 'address' ? '✓' : 'Copy'}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 font-mono text-xs break-all">
-              {selectedCoin === 'BTC' && '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'}
-              {selectedCoin === 'ETH' && '0x742d35Cc6634C0532925a3b844Bc454e4438f44E'}
-              {selectedCoin === 'SOL' && '7EYnhQoR9YM3N7UoaKRoA44Uy8JeaZV3qyouov87awMs'}
-              {selectedCoin === 'DOGE' && 'D7Y55Xs2ByZBb5KYXMJKqk5kfxHqaJsJKs'}
-              {selectedCoin === 'LTC' && 'LQ3B5Y4jw8CezQRq8KqSprPzpLxVYdMvst'}
-              {selectedCoin === 'XRP' && 'rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh'}
+            {/* Memo if required */}
+            {order.deposit_memo && (
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-yellow-600 mb-1">Memo/Tag (Required!)</label>
+                <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-3">
+                  <span className="font-mono text-sm text-gray-900 dark:text-white">
+                    {order.deposit_memo}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(order.deposit_memo!, 'memo')}
+                    className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    {copied === 'memo' ? '✓' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Provider Info */}
+            <div className="text-center text-xs text-gray-500 mb-4">
+              Network: <span className="font-medium">{order.pay_network}</span>
+              {order.provider && order.provider !== 'demo' && (
+                <span> • Via <span className="font-medium capitalize">{order.provider}</span></span>
+              )}
             </div>
 
-            <div className="flex justify-between text-sm mb-4">
-              <span className="text-gray-500">Amount:</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {selectedCoin === 'BTC' && '0.00102'}
-                {selectedCoin === 'ETH' && '0.0312'}
-                {selectedCoin === 'SOL' && '0.523'}
-                {selectedCoin === 'DOGE' && '1,234'}
-                {selectedCoin === 'LTC' && '1.12'}
-                {selectedCoin === 'XRP' && '45.23'}
-                {' '}{selectedCoin}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-center space-x-2 text-sm text-amber-600 mb-4">
-              <svg className="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-              <span>Expires in 29:45</span>
-            </div>
-
+            {/* Simulate Payment Button */}
             <button
-              onClick={handleSimulatePayment}
-              className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+              onClick={simulatePayment}
+              disabled={simulating}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center"
             >
-              Simulate Payment Sent
+              {simulating ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing Payment...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  </svg>
+                  Simulate Payment Sent
+                </>
+              )}
             </button>
-            
-            <button
-              onClick={resetDemo}
-              className="w-full text-gray-500 py-2 mt-2 text-sm hover:text-gray-700"
-            >
-              ← Choose different coin
-            </button>
+          </>
+        )}
+
+        {/* Processing States */}
+        {['confirming', 'exchanging', 'sending'].includes(order.status) && (
+          <div className="py-8 text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 border-4 border-primary-100 dark:border-primary-900/30 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400">
+              {order.status === 'confirming' && 'Confirming blockchain transaction...'}
+              {order.status === 'exchanging' && 'Converting to USDC...'}
+              {order.status === 'sending' && 'Sending to merchant wallet...'}
+            </p>
+            {order.deposit_tx_hash && (
+              <p className="text-xs text-gray-500 mt-2 font-mono">
+                TX: {order.deposit_tx_hash.slice(0, 16)}...
+              </p>
+            )}
           </div>
         )}
 
-        {step === 'confirming' && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 relative">
-              <svg className="w-16 h-16 animate-spin text-primary-200" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Processing Payment</h3>
-            <p className="text-gray-500 text-sm mb-4">Confirming your {selectedCoin} transaction...</p>
-            
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-              <div 
-                className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500">{Math.floor(progress / 33) + 1}/3 confirmations</p>
-          </div>
-        )}
-
-        {step === 'complete' && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+        {/* Success */}
+        {order.status === 'completed' && (
+          <div className="py-8 text-center">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Payment Complete!</h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Your order has been confirmed.<br/>
-              Merchant received $98.01 USDC
+            <h3 className="font-bold text-gray-900 dark:text-white mb-2">Payment Complete!</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+              Merchant received ${order.net_receive?.toFixed(2) || order.fiat_amount.toFixed(2)} USDC
             </p>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-sm">
-              <div className="flex justify-between mb-1">
+            
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-sm mb-4">
+              <div className="flex justify-between mb-2">
                 <span className="text-gray-500">You paid:</span>
-                <span className="text-gray-900 dark:text-white">
-                  {selectedCoin === 'BTC' && '0.00102 BTC'}
-                  {selectedCoin === 'ETH' && '0.0312 ETH'}
-                  {selectedCoin === 'SOL' && '0.523 SOL'}
-                  {selectedCoin === 'DOGE' && '1,234 DOGE'}
-                  {selectedCoin === 'LTC' && '1.12 LTC'}
-                  {selectedCoin === 'XRP' && '45.23 XRP'}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {order.deposit_amount} {order.pay_currency}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Merchant received:</span>
-                <span className="text-green-600 font-medium">$98.01 USDC</span>
+                <span className="font-medium text-green-600">
+                  ${order.net_receive?.toFixed(2) || order.fiat_amount.toFixed(2)} USDC
+                </span>
               </div>
             </div>
-            
+
+            {order.settlement_tx_hash && (
+              <p className="text-xs text-gray-500 font-mono mb-4">
+                Settlement TX: {order.settlement_tx_hash.slice(0, 20)}...
+              </p>
+            )}
+
             <button
               onClick={resetDemo}
-              className="mt-6 bg-primary-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-700 transition"
+              className="bg-primary-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-700 transition"
             >
               Try Demo Again
             </button>
@@ -312,67 +690,86 @@ export default function LandingPage() {
       <section id="demo" className="py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
+            <div className="inline-flex items-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+              Live Production Demo
+            </div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Try the Checkout Experience
+              Try the Real Checkout Experience
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              See exactly what your customers will experience
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              This demo uses actual production APIs, real rate shopping from Exolix & FixedFloat, and the exact same checkout flow your customers will experience.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Demo checkout */}
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Live Demo */}
             <div>
-              <DemoCheckout />
+              <LiveDemo />
             </div>
 
             {/* Description */}
             <div className="space-y-6">
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Simple Coin Selection</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Customers choose from 100+ supported cryptocurrencies with a clean, intuitive interface.</p>
+                  <div>
+                    <h4 className="font-semibold text-green-800 dark:text-green-300">100% Production Code</h4>
+                    <p className="text-sm text-green-700 dark:text-green-400">
+                      This demo runs the exact same APIs and UI that merchants and customers use in production.
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">QR Code Payment</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Mobile-friendly QR codes make it easy to pay from any wallet app.</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Real Rate Shopping</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Live quotes from Exolix and FixedFloat - see actual exchange rates and provider selection.</p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Real-time Status</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Live confirmation tracking shows customers exactly where their payment is.</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Real QR Codes</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Scannable QR codes with actual deposit addresses (demo addresses for testing).</p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-4">
                 <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Instant Stablecoin Settlement</h3>
-                  <p className="text-gray-600 dark:text-gray-400">You receive USDC/USDT directly in your wallet - no volatility risk.</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Full Status Flow</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Experience the complete payment lifecycle: coin selection → payment → confirming → exchanging → complete.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Non-Custodial</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Payments are swapped and sent directly to merchant wallets - we never hold funds.</p>
                 </div>
               </div>
 
@@ -405,95 +802,81 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+            {/* Feature cards */}
+            {[
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                ),
+                title: 'Non-Custodial',
+                description: 'Payments go directly to your wallet. We never hold your funds. No custody, no counterparty risk.',
+                color: 'green',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                ),
+                title: 'Zero Setup',
+                description: 'No API keys, no KYC, no account registration. Just install the plugin and enter your wallet address.',
+                color: 'blue',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                ),
+                title: 'Best Rates',
+                description: 'We rate-shop across multiple exchanges to find the best conversion rate for every transaction.',
+                color: 'purple',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+                title: 'Stablecoin Settlement',
+                description: 'Receive payments in USDC or USDT on your preferred network. No crypto volatility risk.',
+                color: 'orange',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                ),
+                title: '100+ Cryptocurrencies',
+                description: 'Accept BTC, ETH, LTC, XRP, DOGE, SOL, and 100+ more. Your customers choose their favorite.',
+                color: 'pink',
+              },
+              {
+                icon: (
+                  <svg className="w-7 h-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                ),
+                title: 'Beautiful Checkout',
+                description: 'Modern, responsive checkout page with QR codes, live status updates, and mobile-friendly design.',
+                color: 'cyan',
+              },
+            ].map((feature, index) => (
+              <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
+                <div className={`w-14 h-14 bg-${feature.color}-100 dark:bg-${feature.color}-900/30 rounded-xl flex items-center justify-center mb-6`}>
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                Non-Custodial
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Payments go directly to your wallet. We never hold your funds. No custody, no counterparty risk.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                Zero Setup
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                No API keys, no KYC, no account registration. Just install the plugin and enter your wallet address.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                Best Rates
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                We rate-shop across multiple exchanges to find the best conversion rate for every transaction.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                Stablecoin Settlement
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Receive payments in USDC or USDT on your preferred network. No crypto volatility risk.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                100+ Cryptocurrencies
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Accept BTC, ETH, LTC, XRP, DOGE, SOL, and 100+ more. Your customers choose their favorite.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8">
-              <div className="w-14 h-14 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-7 h-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                Beautiful Checkout
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Modern, responsive checkout page with QR codes, live status updates, and mobile-friendly design.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -511,57 +894,24 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-            {/* Step 1 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">1</span>
+            {[
+              { step: '1', title: 'Install Plugin', description: 'Download and install the WooCommerce plugin in your WordPress admin' },
+              { step: '2', title: 'Enter Wallet', description: 'Add your USDC/USDT wallet address and select your preferred network' },
+              { step: '3', title: 'Customer Pays', description: 'Customer selects crypto, scans QR code, and sends payment' },
+              { step: '4', title: 'Receive USDC', description: 'Stablecoins arrive directly in your wallet. Order marked as paid.' },
+            ].map((item, index) => (
+              <div key={index} className="text-center">
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-2xl font-bold text-primary-600">{item.step}</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {item.description}
+                </p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Install Plugin
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Download and install the WooCommerce plugin in your WordPress admin
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">2</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Enter Wallet
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Add your USDC/USDT wallet address and select your preferred network
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">3</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Customer Pays
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Customer selects crypto, scans QR code, and sends payment
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary-600">4</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Receive USDC
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Stablecoins arrive directly in your wallet. Order marked as paid.
-              </p>
-            </div>
+            ))}
           </div>
 
           {/* Flow Diagram */}
