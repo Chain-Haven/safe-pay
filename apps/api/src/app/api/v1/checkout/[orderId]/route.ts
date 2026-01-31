@@ -3,13 +3,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById } from '@/lib/database';
 import { getTimeRemaining } from '@/packages/shared';
+import { checkRateLimit, createRateLimitKey, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
+  // Rate limiting
+  const rateLimitKey = createRateLimitKey(request, 'checkout-status');
+  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS['checkout-status']);
+  
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.resetTime);
+  }
+
   try {
-    const order = await getOrderById(params.orderId);
+    // Validate order ID format
+    const orderId = params.orderId;
+    if (!orderId || !/^ord_[a-z0-9]+$/i.test(orderId)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID format' },
+        { status: 400 }
+      );
+    }
+
+    const order = await getOrderById(orderId);
 
     if (!order) {
       return NextResponse.json(

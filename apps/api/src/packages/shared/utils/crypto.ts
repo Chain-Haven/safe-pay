@@ -99,7 +99,9 @@ export function isTimestampValid(timestamp: string, maxAgeSeconds: number): bool
 
 /**
  * Hash a value for storage (e.g., nonces)
+ * Uses environment variable for salt, with fallback to a default
  */
 export function hashValue(value: string): string {
-  return createHmac('sha256', 'nonce-salt').update(value).digest('hex');
+  const salt = process.env.NONCE_HASH_SALT || 'safepay-nonce-salt-default-v1';
+  return createHmac('sha256', salt).update(value).digest('hex');
 }

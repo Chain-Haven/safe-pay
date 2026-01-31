@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, updateOrder, getMerchantById } from '@/lib/database';
 import { rateShopper } from '@/packages/providers';
 import { getTimeRemaining, isValidCurrencyCode } from '@/packages/shared';
+import { checkRateLimit, createRateLimitKey, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 interface CreateSwapBody {
   pay_currency: string;
@@ -14,8 +15,25 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
+  // Rate limiting
+  const rateLimitKey = createRateLimitKey(request, 'checkout-swap');
+  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS['checkout-swap']);
+  
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.resetTime);
+  }
+
   try {
-    const order = await getOrderById(params.orderId);
+    // Validate order ID format
+    const orderId = params.orderId;
+    if (!orderId || !/^ord_[a-z0-9]+$/i.test(orderId)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID format' },
+        { status: 400 }
+      );
+    }
+
+    const order = await getOrderById(orderId);
 
     if (!order) {
       return NextResponse.json(
