@@ -262,7 +262,7 @@ export default function AdminPage() {
             {(healthData?.providers || providers?.active || []).map((provider: any) => {
               const healthProvider = healthData?.providers?.find((p: any) => p.name === provider.name);
               const score = healthProvider?.healthScore ?? 100;
-              const metrics = healthProvider?.metrics || {};
+              const metrics = healthProvider?.metrics || { totalRequests: 0, successfulRequests: 0, failedRequests: 0, averageLatency: 0 };
               
               return (
                 <div
