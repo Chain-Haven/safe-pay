@@ -301,8 +301,8 @@ export default function LandingPage() {
               <div className="text-white/60">API Keys Required</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white">1%</div>
-              <div className="text-white/60">Platform Fee</div>
+              <div className="text-4xl font-bold text-white">&lt;2min</div>
+              <div className="text-white/60">Setup Time</div>
             </div>
           </div>
         </div>

@@ -229,15 +229,6 @@ export default function DownloadPage() {
             
             <div>
               <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                What are the fees?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                SafePay charges a 1% platform fee on each transaction. This is deducted from the settlement amount before it's sent to your wallet.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-white mb-2">
                 Is my money safe?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">

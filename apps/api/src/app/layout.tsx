@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   keywords: ['crypto payments', 'woocommerce', 'bitcoin', 'ethereum', 'USDC', 'USDT', 'non-custodial'],
   openGraph: {
     title: 'SafePay - Non-Custodial Crypto Payments',
-    description: 'Accept crypto payments directly to your wallet. Zero setup, zero fees for customers.',
+    description: 'Accept crypto payments directly to your wallet. Zero setup, no API keys required.',
     type: 'website',
   },
 };

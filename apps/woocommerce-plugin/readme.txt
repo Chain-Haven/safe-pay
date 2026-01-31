@@ -57,10 +57,6 @@ Over 100 cryptocurrencies including Bitcoin, Ethereum, Litecoin, XRP, Dogecoin, 
 
 No! SafePay uses public APIs that require no registration. Just install the plugin and enter your wallet address.
 
-= What are the fees? =
-
-SafePay charges a 1% platform fee on each transaction. This is deducted from the settlement amount.
-
 = Is my money safe? =
 
 Yes! SafePay is non-custodial, meaning we never hold your funds. Payments are converted and sent directly to your wallet.
