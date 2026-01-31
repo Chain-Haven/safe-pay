@@ -1,9 +1,7 @@
 // POST /api/v1/demo/[orderId]/simulate
 // Simulate payment for demo orders - progresses through status stages
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory demo orders storage
-const demoOrders = new Map<string, any>();
+import { demoOrders, generateRandomHex } from '@/lib/demo-state';
 
 export async function POST(
   request: NextRequest,
@@ -21,7 +19,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { action } = body; // 'pay' | 'confirm' | 'complete'
+    const { action } = body; // 'pay' | 'confirm' | 'exchange' | 'complete' | 'auto'
 
     let order = demoOrders.get(orderId);
     
@@ -106,14 +104,3 @@ export async function POST(
     );
   }
 }
-
-function generateRandomHex(length: number): string {
-  const chars = '0123456789abcdef';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-export { demoOrders };

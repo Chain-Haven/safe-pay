@@ -3,29 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateShopper } from '@/packages/providers';
 import { checkRateLimit, createRateLimitKey, rateLimitResponse } from '@/lib/rate-limit';
-
-// In-memory demo orders storage
-const demoOrders = new Map<string, any>();
-
-// Demo deposit addresses for different currencies
-const DEMO_ADDRESSES: Record<string, string> = {
-  BTC: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-  ETH: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  SOL: '7EYnhQoR9YM3N7UoaKRoA44Uy8JeaZV3qyouov87awMs',
-  LTC: 'LQ3B5Y4jw8CezQRq8KqSprPzpLxVYdMvst',
-  DOGE: 'D7Y55Xs2ByZBb5KYXMJKqk5kfxHqaJsJKs',
-  XRP: 'rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh',
-  USDT: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  USDC: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  TRX: 'TLvG3T6EfJhwLKdsYJbHhB7y8x2KqpFmJt',
-  MATIC: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  ADA: 'addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp',
-  DOT: '1FRMM8PEiWXYax7rpS6X4XZX1aAAxSWx1CrKTyrVYhV24fg',
-  AVAX: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  LINK: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  SHIB: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-  DEFAULT: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
-};
+import { demoOrders, DEMO_ADDRESSES, estimateDepositAmount } from '@/lib/demo-state';
 
 export async function POST(
   request: NextRequest,
@@ -102,30 +80,27 @@ export async function POST(
       deposit_amount: depositAmount,
       deposit_currency: pay_currency.toUpperCase(),
       deposit_network: pay_network.toUpperCase(),
-      deposit_memo: pay_currency === 'XRP' ? '12345678' : undefined,
+      deposit_memo: pay_currency.toUpperCase() === 'XRP' ? '12345678' : undefined,
       withdraw_amount: order_amount,
       expires_at: expiresAt.toISOString(),
     };
 
-    // Store updated demo order
-    demoOrders.set(orderId, {
-      id: orderId,
-      status: 'awaiting_deposit',
-      fiat_amount: order_amount,
-      fiat_currency: 'USD',
-      net_receive: order_amount,
-      settlement_currency: 'USDC',
-      pay_currency: pay_currency.toUpperCase(),
-      pay_network: pay_network.toUpperCase(),
-      deposit_address: depositAddress,
-      deposit_amount: depositAmount,
-      deposit_memo: swapResponse.deposit_memo,
-      provider,
-      provider_swap_id: swapResponse.swap_id,
-      expires_at: expiresAt.toISOString(),
-      is_demo: true,
-      time_remaining: { minutes: 30, seconds: 0, expired: false },
-    });
+    // Update stored demo order
+    const existingOrder = demoOrders.get(orderId);
+    if (existingOrder) {
+      demoOrders.set(orderId, {
+        ...existingOrder,
+        status: 'awaiting_deposit',
+        pay_currency: pay_currency.toUpperCase(),
+        pay_network: pay_network.toUpperCase(),
+        deposit_address: depositAddress,
+        deposit_amount: depositAmount,
+        deposit_memo: swapResponse.deposit_memo,
+        provider,
+        provider_swap_id: swapResponse.swap_id,
+        expires_at: expiresAt.toISOString(),
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -142,30 +117,3 @@ export async function POST(
     );
   }
 }
-
-// Estimate deposit amount based on rough crypto prices
-function estimateDepositAmount(currency: string, usdAmount: number): number {
-  const prices: Record<string, number> = {
-    BTC: 97000,
-    ETH: 3100,
-    SOL: 190,
-    LTC: 100,
-    DOGE: 0.32,
-    XRP: 2.5,
-    ADA: 0.95,
-    DOT: 7,
-    AVAX: 35,
-    LINK: 22,
-    MATIC: 0.5,
-    TRX: 0.23,
-    SHIB: 0.000022,
-    USDT: 1,
-    USDC: 1,
-  };
-
-  const price = prices[currency.toUpperCase()] || 100;
-  return Number((usdAmount / price).toFixed(8));
-}
-
-// Get demo order
-export { demoOrders };

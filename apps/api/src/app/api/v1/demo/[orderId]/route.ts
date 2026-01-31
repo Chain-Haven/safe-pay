@@ -1,9 +1,7 @@
 // GET /api/v1/demo/[orderId]
 // Get demo order details
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory demo orders storage (shared with swap endpoint)
-const demoOrders = new Map<string, any>();
+import { demoOrders } from '@/lib/demo-state';
 
 export async function GET(
   request: NextRequest,
@@ -63,5 +61,3 @@ export async function GET(
     );
   }
 }
-
-export { demoOrders };

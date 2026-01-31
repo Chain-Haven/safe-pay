@@ -2,18 +2,7 @@
 // Create a demo checkout session for the landing page live demo
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, createRateLimitKey, rateLimitResponse } from '@/lib/rate-limit';
-
-// Demo merchant configuration
-const DEMO_MERCHANT = {
-  id: 'demo_merchant_001',
-  store_name: 'Demo Store',
-  settlement_currency: 'USDC',
-  settlement_network: 'POLYGON',
-  payout_address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E', // Example address
-};
-
-// In-memory storage for demo orders (reset on serverless cold start)
-const demoOrders = new Map<string, any>();
+import { demoOrders, DEMO_MERCHANT, cleanupOldDemoOrders, DemoOrder } from '@/lib/demo-state';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - 10 demo orders per minute per IP
@@ -32,7 +21,7 @@ export async function POST(request: NextRequest) {
     const orderId = `demo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
     
-    const demoOrder = {
+    const demoOrder: DemoOrder = {
       id: orderId,
       merchant_id: DEMO_MERCHANT.id,
       status: 'pending',
@@ -51,13 +40,8 @@ export async function POST(request: NextRequest) {
     // Store demo order
     demoOrders.set(orderId, demoOrder);
 
-    // Clean up old demo orders (older than 1 hour)
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    for (const [id, order] of demoOrders.entries()) {
-      if (new Date(order.created_at).getTime() < oneHourAgo) {
-        demoOrders.delete(id);
-      }
-    }
+    // Clean up old demo orders
+    cleanupOldDemoOrders();
 
     return NextResponse.json({
       order_id: orderId,
@@ -78,6 +62,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Export for use by other demo endpoints
-export { demoOrders, DEMO_MERCHANT };
