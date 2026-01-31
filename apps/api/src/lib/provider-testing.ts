@@ -192,15 +192,15 @@ export async function testProvider(
       
       // Validate quote structure
       const errors = validateResponseShape(quote, [
-        'provider', 'fromCurrency', 'fromNetwork', 'toCurrency', 'toNetwork',
-        'depositAmount', 'receiveAmount', 'rate'
+        'provider', 'depositCurrency', 'depositNetwork', 'withdrawCurrency', 'withdrawNetwork',
+        'depositAmount', 'withdrawAmount', 'rate'
       ]);
       
       if (errors.length > 0) throw new Error(errors.join(', '));
       
       // Validate quote values are reasonable
       if (quote.depositAmount <= 0) throw new Error('Invalid depositAmount');
-      if (quote.receiveAmount <= 0) throw new Error('Invalid receiveAmount');
+      if (quote.withdrawAmount <= 0) throw new Error('Invalid withdrawAmount');
       if (quote.rate <= 0) throw new Error('Invalid rate');
       
       return { quote };
@@ -219,7 +219,7 @@ export async function testProvider(
       
       // BTC to USDT rate should be somewhere between $10,000 and $500,000
       // This is a sanity check, not a precise validation
-      const btcPrice = quote.receiveAmount / quote.depositAmount;
+      const btcPrice = quote.withdrawAmount / quote.depositAmount;
       
       if (btcPrice < 1000 || btcPrice > 500000) {
         throw new Error(`Rate seems unreasonable: ${btcPrice} USDT per BTC`);
