@@ -1,0 +1,22 @@
+{
+  "name": "safepay-contracts",
+  "version": "1.0.0",
+  "description": "SafePay Payment Splitter Smart Contracts",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
+    "deploy:bsc": "hardhat run scripts/deploy.ts --network bsc",
+    "deploy:arbitrum": "hardhat run scripts/deploy.ts --network arbitrum",
+    "deploy:base": "hardhat run scripts/deploy.ts --network base",
+    "deploy:all": "npm run deploy:polygon && npm run deploy:bsc && npm run deploy:arbitrum && npm run deploy:base",
+    "verify:polygon": "hardhat run scripts/verify.ts --network polygon",
+    "setup:tokens": "hardhat run scripts/setup-tokens.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "hardhat": "^2.19.0",
+    "dotenv": "^16.3.1"
+  }
+}
