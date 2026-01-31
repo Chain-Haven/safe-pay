@@ -6,6 +6,52 @@
 export const PLATFORM_FEE_PERCENT = 0.01;
 
 /**
+ * Platform fee basis points (100 = 1%)
+ */
+export const PLATFORM_FEE_BASIS_POINTS = 100;
+
+/**
+ * Platform fee wallet address - receives 1% of all transactions
+ */
+export const FEE_WALLET_ADDRESS = '0xaF109Ccf6b5e77A139253E4db48B95d6ea361146';
+
+/**
+ * Payment splitter contract addresses by network
+ * These contracts automatically split payments 99% to merchant, 1% to fee wallet
+ */
+export const SPLITTER_CONTRACTS: Record<string, string> = {
+  // Deploy these contracts and add addresses here
+  POLYGON: '', // To be deployed
+  BSC: '',     // To be deployed
+  ARB: '',     // To be deployed
+  OP: '',      // To be deployed
+  AVAX: '',    // To be deployed
+  ERC20: '',   // Ethereum mainnet - To be deployed
+};
+
+/**
+ * Stablecoin contract addresses by network
+ */
+export const STABLECOIN_ADDRESSES: Record<string, Record<string, string>> = {
+  POLYGON: {
+    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // Native USDC on Polygon
+    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  },
+  BSC: {
+    USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+    USDT: '0x55d398326f99059fF775485246999027B3197955',
+  },
+  ARB: {
+    USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // Native USDC on Arbitrum
+    USDT: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+  },
+  ERC20: {
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+  },
+};
+
+/**
  * Order expiration time in minutes
  */
 export const ORDER_EXPIRATION_MINUTES = 30;
