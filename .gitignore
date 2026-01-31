@@ -39,3 +39,4 @@ coverage
 # Vercel
 .vercel
 .env*.local
+# Trigger rebuild
