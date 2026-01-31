@@ -72,15 +72,21 @@ export const NONCE_VALIDITY_MINUTES = 10;
 export const MAX_REQUEST_AGE_SECONDS = 300;
 
 /**
+ * Default settlement configuration - ALL payments settle to USDT on Polygon
+ * This ensures automatic fee splitting via the deployed smart contract
+ */
+export const DEFAULT_SETTLEMENT = {
+  currency: 'USDT' as const,
+  network: 'POLYGON' as const,
+};
+
+/**
  * Supported settlement currencies with their network options
+ * Simplified to USDT on Polygon for automatic fee collection
  */
 export const SETTLEMENT_OPTIONS = {
-  USDC: {
-    networks: ['ERC20', 'TRC20', 'BSC', 'POLYGON', 'SOL', 'ARB', 'AVAX', 'OP'],
-    decimals: 6,
-  },
   USDT: {
-    networks: ['ERC20', 'TRC20', 'BSC', 'POLYGON', 'SOL', 'ARB', 'AVAX', 'OP'],
+    networks: ['POLYGON'],
     decimals: 6,
   },
 } as const;

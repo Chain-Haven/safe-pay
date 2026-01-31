@@ -33,7 +33,7 @@ export const demoOrders = new Map<string, DemoOrder>();
 export const DEMO_MERCHANT = {
   id: 'demo_merchant_001',
   store_name: 'Demo Store',
-  settlement_currency: 'USDC',
+  settlement_currency: 'USDT',
   settlement_network: 'POLYGON',
   payout_address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44E',
 };

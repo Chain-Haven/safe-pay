@@ -23,14 +23,14 @@ class WC_Crypto_Gateway extends WC_Payment_Gateway {
     private $api_client;
 
     /**
-     * Allowed settlement currencies
+     * Allowed settlement currencies - USDT only for automatic fee splitting
      */
-    private $allowed_currencies = array('USDC', 'USDT');
+    private $allowed_currencies = array('USDT');
 
     /**
-     * Allowed networks
+     * Allowed networks - Polygon only for automatic fee splitting via smart contract
      */
-    private $allowed_networks = array('ERC20', 'TRC20', 'BSC', 'POLYGON', 'SOL', 'ARB', 'AVAX', 'OP');
+    private $allowed_networks = array('POLYGON');
 
     /**
      * Constructor
@@ -136,19 +136,19 @@ class WC_Crypto_Gateway extends WC_Payment_Gateway {
     }
 
     /**
-     * Sanitize currency
+     * Sanitize currency - defaults to USDT (only supported option)
      */
     private function sanitize_currency($currency) {
         $currency = strtoupper(sanitize_text_field($currency));
-        return in_array($currency, $this->allowed_currencies, true) ? $currency : 'USDC';
+        return in_array($currency, $this->allowed_currencies, true) ? $currency : 'USDT';
     }
 
     /**
-     * Sanitize network
+     * Sanitize network - defaults to POLYGON (only supported option)
      */
     private function sanitize_network($network) {
         $network = strtoupper(sanitize_text_field($network));
-        return in_array($network, $this->allowed_networks, true) ? $network : 'ERC20';
+        return in_array($network, $this->allowed_networks, true) ? $network : 'POLYGON';
     }
 
     /**
@@ -278,42 +278,35 @@ class WC_Crypto_Gateway extends WC_Payment_Gateway {
             'settlement_currency' => array(
                 'title'       => __('Settlement Currency', 'wc-crypto-gateway'),
                 'type'        => 'select',
-                'description' => __('Choose which stablecoin you want to receive.', 'wc-crypto-gateway'),
-                'default'     => 'USDC',
+                'description' => __('All payments are settled in USDT on Polygon for instant processing.', 'wc-crypto-gateway'),
+                'default'     => 'USDT',
                 'options'     => array(
-                    'USDC' => 'USDC',
-                    'USDT' => 'USDT',
+                    'USDT' => 'USDT (Tether)',
                 ),
                 'desc_tip'    => true,
             ),
             'settlement_network' => array(
                 'title'       => __('Settlement Network', 'wc-crypto-gateway'),
                 'type'        => 'select',
-                'description' => __('Choose which blockchain network to receive payments on.', 'wc-crypto-gateway'),
-                'default'     => 'ERC20',
+                'description' => __('All payments are processed on Polygon for low fees and fast settlement.', 'wc-crypto-gateway'),
+                'default'     => 'POLYGON',
                 'options'     => array(
-                    'ERC20'   => 'Ethereum (ERC20)',
-                    'TRC20'   => 'Tron (TRC20)',
-                    'BSC'     => 'BNB Smart Chain (BEP20)',
-                    'POLYGON' => 'Polygon',
-                    'SOL'     => 'Solana',
-                    'ARB'     => 'Arbitrum',
-                    'AVAX'    => 'Avalanche C-Chain',
-                    'OP'      => 'Optimism',
+                    'POLYGON' => 'Polygon (MATIC)',
                 ),
                 'desc_tip'    => true,
             ),
             'payout_address' => array(
-                'title'       => __('Payout Address', 'wc-crypto-gateway'),
+                'title'       => __('Polygon Wallet Address', 'wc-crypto-gateway'),
                 'type'        => 'text',
-                'description' => __('Your wallet address for receiving payments. Verify this is correct!', 'wc-crypto-gateway'),
+                'description' => __('Your Polygon wallet address (0x...) for receiving USDT payments. Works with MetaMask, Coinbase Wallet, etc.', 'wc-crypto-gateway'),
                 'default'     => '',
                 'desc_tip'    => true,
                 'placeholder' => '0x...',
                 'custom_attributes' => array(
                     'autocomplete' => 'off',
-                    'maxlength' => 100,
+                    'maxlength' => 42,
                     'required' => 'required',
+                    'pattern' => '0x[a-fA-F0-9]{40}',
                 ),
             ),
             'payout_memo' => array(
