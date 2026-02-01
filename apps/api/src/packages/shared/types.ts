@@ -35,7 +35,13 @@ export type OrderStatus =
 /**
  * Swap provider identifiers
  */
-export type SwapProvider = 'exolix' | 'fixedfloat';
+export type SwapProvider = 
+  | 'exolix' 
+  | 'fixedfloat' 
+  | 'changenow' 
+  | 'simpleswap' 
+  | 'stealthex' 
+  | 'changelly';
 
 /**
  * Merchant configuration stored in database

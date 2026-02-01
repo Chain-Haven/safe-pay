@@ -137,6 +137,34 @@ export const PROVIDER_ENDPOINTS = {
     create: '/create',
     status: '/order',
   },
+  changenow: {
+    base: 'https://api.changenow.io/v2',
+    currencies: '/exchange/currencies',
+    estimate: '/exchange/estimated-amount',
+    exchange: '/exchange',
+    status: '/exchange/by-id',
+  },
+  simpleswap: {
+    base: 'https://api.simpleswap.io',
+    currencies: '/get_all_currencies',
+    estimate: '/get_estimated',
+    exchange: '/create_exchange',
+    status: '/get_exchange',
+  },
+  stealthex: {
+    base: 'https://api.stealthex.io/api/v2',
+    currencies: '/currencies',
+    estimate: '/estimate',
+    exchange: '/exchange',
+    status: '/exchange',
+  },
+  changelly: {
+    base: 'https://api.changelly.com/v2',
+    currencies: '/currencies',
+    estimate: '/exchange-amount',
+    exchange: '/create-transaction',
+    status: '/transactions',
+  },
 } as const;
 
 /**
@@ -161,6 +189,53 @@ export const FIXEDFLOAT_STATUS_MAP: Record<string, string> = {
   DONE: 'completed',
   EXPIRED: 'expired',
   EMERGENCY: 'failed',
+};
+
+export const CHANGENOW_STATUS_MAP: Record<string, string> = {
+  new: 'awaiting_deposit',
+  waiting: 'awaiting_deposit',
+  confirming: 'confirming',
+  exchanging: 'exchanging',
+  sending: 'sending',
+  finished: 'completed',
+  failed: 'failed',
+  refunded: 'refunded',
+  expired: 'expired',
+};
+
+export const SIMPLESWAP_STATUS_MAP: Record<string, string> = {
+  waiting: 'awaiting_deposit',
+  confirming: 'confirming',
+  exchanging: 'exchanging',
+  sending: 'sending',
+  finished: 'completed',
+  failed: 'failed',
+  refunded: 'refunded',
+  expired: 'expired',
+};
+
+export const STEALTHEX_STATUS_MAP: Record<string, string> = {
+  waiting: 'awaiting_deposit',
+  confirming: 'confirming',
+  exchanging: 'exchanging',
+  sending: 'sending',
+  finished: 'completed',
+  failed: 'failed',
+  refunded: 'refunded',
+  expired: 'expired',
+};
+
+export const CHANGELLY_STATUS_MAP: Record<string, string> = {
+  new: 'awaiting_deposit',
+  waiting: 'awaiting_deposit',
+  confirming: 'confirming',
+  exchanging: 'exchanging',
+  sending: 'sending',
+  finished: 'completed',
+  failed: 'failed',
+  refunded: 'refunded',
+  overdue: 'expired',
+  hold: 'pending',
 };
 
 /**

@@ -13,6 +13,10 @@ import type { SwapProvider } from '../shared';
 import type { ISwapProvider, ProviderConfig } from './interfaces';
 import { ExolixProvider } from './providers/exolix';
 import { FixedFloatProvider } from './providers/fixedfloat';
+import { ChangeNowProvider } from './providers/changenow';
+import { SimpleSwapProvider } from './providers/simpleswap';
+import { StealthExProvider } from './providers/stealthex';
+import { ChangellyProvider } from './providers/changelly';
 
 /**
  * Provider registry singleton
@@ -79,12 +83,31 @@ class ProviderRegistry {
     // Register FixedFloat (secondary - works without API key)
     this.register(new FixedFloatProvider(config));
     
-    // Future providers can be added here:
-    // this.register(new ChangeNowProvider(config)); // Requires API key
-    // this.register(new SimpleSwapProvider(config)); // Requires API key
+    // Register ChangeNOW (requires API key - enabled if CHANGENOW_API_KEY env var is set)
+    this.register(new ChangeNowProvider(config));
+    
+    // Register SimpleSwap (requires API key - enabled if SIMPLESWAP_API_KEY env var is set)
+    this.register(new SimpleSwapProvider(config));
+    
+    // Register StealthEX (requires API key - enabled if STEALTHEX_API_KEY env var is set)
+    this.register(new StealthExProvider(config));
+    
+    // Register Changelly (requires API key & secret - enabled if CHANGELLY_API_KEY env var is set)
+    this.register(new ChangellyProvider(config));
     
     this.initialized = true;
-    console.log(`[ProviderRegistry] Initialized with ${this.providers.size} providers`);
+    
+    const enabledCount = this.getEnabled().length;
+    const totalCount = this.providers.size;
+    console.log(`[ProviderRegistry] Initialized with ${totalCount} providers (${enabledCount} enabled)`);
+    
+    // Log which providers are enabled
+    this.getEnabled().forEach(p => {
+      console.log(`[ProviderRegistry] ✓ ${p.displayName} - enabled`);
+    });
+    this.getAll().filter(p => !p.enabled).forEach(p => {
+      console.log(`[ProviderRegistry] ✗ ${p.displayName} - disabled (missing API key)`);
+    });
   }
 }
 
