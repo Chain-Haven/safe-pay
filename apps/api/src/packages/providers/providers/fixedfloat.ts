@@ -35,7 +35,7 @@ export class FixedFloatProvider implements ISwapProvider {
   
   constructor(config?: ProviderConfig) {
     this.timeout = config?.timeout ?? DEFAULT_TIMEOUT;
-    this.apiKey = config?.apiKey;
+    this.apiKey = config?.apiKey || process.env.FIXEDFLOAT_API_KEY;
   }
   
   /**
@@ -53,6 +53,7 @@ export class FixedFloatProvider implements ISwapProvider {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'User-Agent': 'SafePay/1.0 (+https://safepay.example)',
     };
     
     // Add API key if available (increases rate limits)

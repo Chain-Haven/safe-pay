@@ -1,6 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "ANTHROPIC_API_KEY",
+    "CRON_SECRET",
+    "NONCE_HASH_SALT",
+    "EXOLIX_API_KEY",
+    "FIXEDFLOAT_API_KEY",
+    "CHANGENOW_API_KEY",
+    "SIMPLESWAP_API_KEY",
+    "STEALTHEX_API_KEY",
+    "CHANGELLY_API_KEY",
+    "CHANGELLY_API_SECRET"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

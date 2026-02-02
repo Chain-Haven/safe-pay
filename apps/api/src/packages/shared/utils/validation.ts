@@ -19,7 +19,7 @@ export function validateAddress(address: string, network: string): boolean {
  * Validate settlement currency
  */
 export function isValidSettlementCurrency(currency: string): currency is SettlementCurrency {
-  return currency === 'USDC' || currency === 'USDT';
+  return Object.prototype.hasOwnProperty.call(SETTLEMENT_OPTIONS, currency);
 }
 
 /**
@@ -29,7 +29,10 @@ export function isValidSettlementNetwork(
   currency: SettlementCurrency,
   network: string
 ): network is SettlementNetwork {
-  const options = SETTLEMENT_OPTIONS[currency];
+  const options = SETTLEMENT_OPTIONS[currency as keyof typeof SETTLEMENT_OPTIONS];
+  if (!options) {
+    return false;
+  }
   return options.networks.includes(network as any);
 }
 

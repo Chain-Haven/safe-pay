@@ -38,9 +38,11 @@ export class ExolixProvider implements ISwapProvider {
   readonly enabled = true;
   
   private timeout: number;
+  private apiKey?: string;
   
   constructor(config?: ProviderConfig) {
     this.timeout = config?.timeout ?? DEFAULT_TIMEOUT;
+    this.apiKey = config?.apiKey || process.env.EXOLIX_API_KEY;
   }
   
   /**
@@ -61,6 +63,9 @@ export class ExolixProvider implements ISwapProvider {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          // Some endpoints block unknown clients without a UA header
+          'User-Agent': 'SafePay/1.0 (+https://safepay.example)',
+          ...(this.apiKey ? { Authorization: this.apiKey } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
@@ -81,6 +86,20 @@ export class ExolixProvider implements ISwapProvider {
       }
       throw error;
     }
+  }
+  
+  /**
+   * Normalize network name for Exolix API
+   */
+  private normalizeNetwork(currency: string, network: string): string {
+    const upperNetwork = network.toUpperCase();
+    const upperCurrency = currency.toUpperCase();
+    
+    if (upperNetwork === 'MAINNET' || upperNetwork === upperCurrency) {
+      return upperCurrency;
+    }
+    
+    return NETWORK_MAP[upperNetwork] || upperNetwork;
   }
   
   /**
@@ -161,8 +180,8 @@ export class ExolixProvider implements ISwapProvider {
     withdrawAmount: number
   ): Promise<SwapQuote | null> {
     try {
-      const fromNet = NETWORK_MAP[fromNetwork] || fromNetwork;
-      const toNet = NETWORK_MAP[toNetwork] || toNetwork;
+      const fromNet = this.normalizeNetwork(fromCurrency, fromNetwork);
+      const toNet = this.normalizeNetwork(toCurrency, toNetwork);
       
       // Exolix rate endpoint with fixed withdrawal
       const params = new URLSearchParams({
@@ -171,8 +190,8 @@ export class ExolixProvider implements ISwapProvider {
         coinTo: toCurrency.toUpperCase(),
         networkTo: toNet,
         amount: withdrawAmount.toString(),
+        withdrawalAmount: withdrawAmount.toString(),
         rateType: 'fixed',
-        withdrawalType: 'fixed', // Fixed withdrawal amount
       });
       
       const response = await this.request<any>(`/rate?${params}`);
@@ -212,16 +231,22 @@ export class ExolixProvider implements ISwapProvider {
     withdrawAddress: string,
     withdrawMemo?: string
   ): Promise<SwapDetails> {
-    const fromNet = NETWORK_MAP[fromNetwork] || fromNetwork;
-    const toNet = NETWORK_MAP[toNetwork] || toNetwork;
+    const fromNet = this.normalizeNetwork(fromCurrency, fromNetwork);
+    const toNet = this.normalizeNetwork(toCurrency, toNetwork);
+    
+    // Get a quote to determine deposit amount for fixed withdrawal
+    const quote = await this.getQuote(fromCurrency, fromNetwork, toCurrency, toNetwork, withdrawAmount);
+    if (!quote) {
+      throw new Error('Exolix create swap failed: unable to get quote');
+    }
     
     const body: any = {
       coinFrom: fromCurrency.toUpperCase(),
       networkFrom: fromNet,
       coinTo: toCurrency.toUpperCase(),
       networkTo: toNet,
-      amount: withdrawAmount,
-      withdrawalType: 'fixed',
+      amount: quote.depositAmount,
+      withdrawalAmount: withdrawAmount,
       withdrawalAddress: withdrawAddress,
       rateType: 'fixed',
     };
@@ -239,15 +264,22 @@ export class ExolixProvider implements ISwapProvider {
     // Calculate expiration (Exolix swaps typically expire in 30 minutes)
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     
+    const depositAmount = parseFloat(
+      response.amountFrom ?? response.amount ?? quote.depositAmount
+    );
+    const withdrawAmountParsed = parseFloat(
+      response.amountTo ?? response.toAmount ?? withdrawAmount
+    );
+    
     return {
       provider: 'exolix',
       swapId: response.id,
       depositAddress: response.depositAddress,
-      depositAmount: parseFloat(response.amountFrom),
+      depositAmount,
       depositCurrency: fromCurrency.toUpperCase(),
       depositNetwork: fromNetwork,
       depositMemo: response.depositExtraId,
-      withdrawAmount: parseFloat(response.amountTo),
+      withdrawAmount: withdrawAmountParsed,
       withdrawAddress: withdrawAddress,
       expiresAt,
     };

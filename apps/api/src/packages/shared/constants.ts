@@ -152,11 +152,11 @@ export const PROVIDER_ENDPOINTS = {
     status: '/get_exchange',
   },
   stealthex: {
-    base: 'https://api.stealthex.io/api/v2',
+    base: 'https://api.stealthex.io/v4',
     currencies: '/currencies',
-    estimate: '/estimate',
-    exchange: '/exchange',
-    status: '/exchange',
+    estimate: '/rates/estimated-amount',
+    exchange: '/exchanges',
+    status: '/exchanges',
   },
   changelly: {
     base: 'https://api.changelly.com/v2',
@@ -219,6 +219,7 @@ export const STEALTHEX_STATUS_MAP: Record<string, string> = {
   confirming: 'confirming',
   exchanging: 'exchanging',
   sending: 'sending',
+  verifying: 'confirming',
   finished: 'completed',
   failed: 'failed',
   refunded: 'refunded',

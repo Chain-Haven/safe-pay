@@ -1,7 +1,7 @@
 // GET /api/v1/demo/[orderId]
 // Get demo order details
 import { NextRequest, NextResponse } from 'next/server';
-import { demoOrders } from '@/lib/demo-state';
+import { demoOrders, DEMO_MERCHANT } from '@/lib/demo-state';
 
 export async function GET(
   request: NextRequest,
@@ -28,7 +28,8 @@ export async function GET(
         fiat_amount: 99.00,
         fiat_currency: 'USD',
         net_receive: 99.00,
-        settlement_currency: 'USDC',
+        settlement_currency: DEMO_MERCHANT.settlement_currency,
+        settlement_network: DEMO_MERCHANT.settlement_network,
         success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://api-zeta-red.vercel.app'}/?demo=success`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://api-zeta-red.vercel.app'}/?demo=cancelled`,
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),

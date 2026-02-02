@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateShopper } from '@/packages/providers';
 import { checkRateLimit, createRateLimitKey, rateLimitResponse } from '@/lib/rate-limit';
-import { demoOrders, DEMO_ADDRESSES, estimateDepositAmount } from '@/lib/demo-state';
+import { demoOrders, DEMO_ADDRESSES, DEMO_MERCHANT, estimateDepositAmount } from '@/lib/demo-state';
 
 export async function POST(
   request: NextRequest,
@@ -47,8 +47,8 @@ export async function POST(
       const rateShopResult = await rateShopper.getBestQuote(
         pay_currency.toUpperCase(),
         pay_network.toUpperCase(),
-        'USDC',
-        'POLYGON',
+        DEMO_MERCHANT.settlement_currency,
+        DEMO_MERCHANT.settlement_network,
         order_amount
       );
 
