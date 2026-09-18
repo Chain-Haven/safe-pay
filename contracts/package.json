@@ -14,9 +14,9 @@
     "setup:tokens": "hardhat run scripts/setup-tokens.ts"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
     "@openzeppelin/contracts": "^5.0.0",
-    "hardhat": "^2.19.0",
+    "hardhat": "^3.17.0",
     "dotenv": "^16.3.1"
   }
 }
